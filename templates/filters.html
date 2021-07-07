@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Filters
+{% endblock %}
+
+{% block header %}
+    Filters
+{% endblock %}
+
+{% block content %}
+    <div class="bg-light mx-auto w-50 h-50 mt-5 border border-primary rounded border-4">
+        <img class="h-100 w-100 mx-auto" src="{{ url_for('video_feed') }}">
+    </div>
+    <div class="d-flex justify-content-center mt-4">
+        <div class="px-4">
+            <form action="{{ url_for('apply_filters') }}" method="post">
+                <div class="d-flex justify-content-center my-3">
+                    <input type="submit" class="btn btn-primary btn" value="Start/Stop" name="switch">
+                </div>
+                <input type="submit" class="btn btn-secondary" value="Grey" name="grey">
+                <input type="submit" class="btn btn-warning" value="Negative" name="neg">
+                <input type="submit" class="btn btn-danger" value="Cartoon" name="cartoon">
+                <input type="submit" class="btn btn-success" value="Water Color" name="wc">
+                <input type="submit" class="btn btn-info" value="Pencil Sketch" name="pencil">
+                <input type="submit" class="btn btn-dark" value="Phantom" name="phantom">
+                <input type="submit" class="btn btn-primary" value="Capture Screenshot" name="capture">  
+            </form>
+        </div>   
+    </div>
+{% endblock %}

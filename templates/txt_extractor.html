@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+
+{% block title%} 
+    Text Extractor
+{% endblock %}
+
+{% block header%} 
+    Text Extractor
+{% endblock %}
+
+{% block content %}
+    {% for msgs in get_flashed_messages() %}
+        <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+            <strong>{{ msgs }}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+
+    <div class="container mt-5">
+        <form action="/text-extractor" method="POST" enctype="multipart/form-data">
+            <div class="custom-file container w-75 justify-content-center d-flex">
+              <input type="file" class="custom-file-input" id="customFile" name="img" accept="images/*">
+              <label class="custom-file-label" for="customFile">Choose file</label>
+            </div>             
+            <div class="col-md-12 text-center my-5">
+                <button type="submit" class="btn btn-primary text-center">Get Text</button>
+            </div>           
+        </form>
+
+        {% if extracted_txt %}
+            <textarea class="form-control textarea-txt-extractor" type="text" rows="10" cols="10" readonly>{{ extracted_txt }}</textarea>
+        {% else %}
+            <textarea class="form-control textarea-txt-extractor text-center font-weight-bold h3" type="text" rows="1" cols="1" readonly>No text found!</textarea>
+        {% endif %}
+    </div>
+{% endblock %}

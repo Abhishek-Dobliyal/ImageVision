@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+<!-- Title -->
+{% block title%}
+    Steganographer
+{% endblock %}
+
+<!-- Header -->
+{% block header %}
+    Steganographer
+{% endblock %}
+
+<!-- Body-->
+{% block content %}
+    {% for msgs in get_flashed_messages() %}
+        <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+            <strong>{{ msgs }}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+
+    <div class="container mt-3">
+        <form action="/steganographer" method="POST" enctype="multipart/form-data">
+            <div class="form-group py-3">
+                <label for="exampleFormControlSelect1">Select</label>
+                <select class="form-control" id="exampleFormControlSelect1" name="selected">
+                    <option value="1">Encrypt</option>
+                    <option value="2">Decrypt</option>
+                </select>
+            </div>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="customFile" accept=".png" name="img">
+                <label class="custom-file-label" for="customFile">Choose file</label>
+            </div>  
+            {% if decrypted_msg %}
+                <div class="form-group py-3 mt-3">
+                    <label for="exampleFormControlTextarea1">Decrypted Message</label>
+                    <textarea class="form-control" id="exampleFormControlTextarea1" rows="2" maxlength="50"> {{ decrypted_msg }}</textarea>
+                </div>
+            {% else %}
+                <div class="form-group py-3">
+                    <label for="exampleFormControlTextarea1">Type your message (Only for Encryption)</label>
+                    <textarea class="form-control textarea-stegano" id="exampleFormControlTextarea1" rows="2" maxlength="50" placeholder="Type here to encrypt..." name="msg"></textarea>
+                </div>
+            {% endif %}
+            <div class="col-md-12 text-center">
+                <button type="submit" class="btn btn-primary text-center">Execute</button>
+            </div>           
+        </form>
+    </div>
+{% endblock %}

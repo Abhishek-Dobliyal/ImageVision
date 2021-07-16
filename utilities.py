@@ -1,13 +1,15 @@
 # Required Imports
-from app import index
 from stegano import lsb
 import cv2
 import numpy as np
+from PIL import ImageEnhance, Image
 from cv2 import dnn_superres
 import dlib
 import pytesseract as pyt
+import pyautogui
 from datetime import datetime
 
+THRESHOLD_EAR_VALUE = 0.27
 captured_ss_path = ""
 convexhull = None
 frame_to_capture = None
@@ -16,8 +18,8 @@ frame_to_capture = None
 class Steganographer:
     def __init__(self, file):
         self.__file = file
-        self.__uploaded_file_path = f"./uploads/{self.__file}.png"
-        self.__download_file_path = f"./downloads/{self.__file}_encryptedByStegano.png"
+        self.__uploaded_file_path = f"./static/uploads/{self.__file}.png"
+        self.__download_file_path = f"./static/downloads/{self.__file}_encryptedByStegano.png"
 
     def hide(self, msg):
         secret = lsb.hide(self.__uploaded_file_path, msg)
@@ -34,7 +36,7 @@ class TextExtractor:
         self.__file = file
         
     def extract_txt(self):
-        ''' Extract text from images '''
+        """ Extract text from images """
         img = cv2.imread(self.__file)
 
         # Convert image into Grayscale and then apply threshold
@@ -66,14 +68,14 @@ class TextExtractor:
 class ImageProcessor:
     def __init__(self, file):
         self.__file = file
-        self.__uploaded_file_path = f"./uploads/{self.__file}"
+        self.__uploaded_file_path = f"./static/uploads/{self.__file}"
         self.__model_path = "./model/FSRCNN_x4.pb"
 
         filename, ext = self.__file.split(".")
         self.__download_file_path = f"./downloads/{filename}_super_resolution.{ext}"
 
     def enhance_res(self):
-        ''' Enhance resolution of image using pre-trained model''' 
+        """ Enhance resolution of image using pre-trained model""" 
         img = cv2.imread(self.__uploaded_file_path)
 
         # Apply DNN Super Resolution technique using pre trained model (in our case FSRCNN model)
@@ -90,12 +92,12 @@ class ImageProcessor:
 class Filters:
     def __init__(self, switch):
         self.__switch = switch
-        self.__download_folder = "./downloads"
+        self.__download_folder = "./static/downloads"
     
-    def generate_frame(self, grey, negative, cartoon, water_color,
-                      pencil, phantom, capture_ss):
-        ''' Generates the captured frames and 
-        yields them as bytes '''
+    def generate_frames(self, grey, negative, cartoon, water_color,
+                      pencil, phantom, blur, capture_ss):
+        """ Generates the captured frames and 
+        yields them as bytes """
         cap = cv2.VideoCapture(0)
         while cap.isOpened():
             if self.__switch[0]:
@@ -109,10 +111,9 @@ class Filters:
 
                     if cartoon[0]:
                         smooth_img = cv2.bilateralFilter(frame, 10, 250, 250)
-
                         # Work on edge lines
                         gray = cv2.cvtColor(smooth_img, cv2.COLOR_BGR2GRAY)
-                        img_blur = cv2.medianBlur(gray, 5)
+                        img_blur = cv2.GaussianBlur(gray, (3, 3), 0)
                         img_edge = cv2.adaptiveThreshold(img_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                                         cv2.THRESH_BINARY, 9, 10)
 
@@ -130,8 +131,14 @@ class Filters:
                         frame = cv2.divide(gray, 255 - smooth_img, scale=256)
 
                     if phantom[0]:
-                        kernel = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
-                        frame = cv2.filter2D(frame, -1, kernel)
+                        _, frame = cv2.threshold(frame, 120, 255, cv2.THRESH_BINARY_INV)
+                    
+                    if blur[0]:
+                        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                        mask = cv2.inRange(hsv, (0, 75, 40), (180, 255, 255))
+                        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+                        blurred_frame = cv2.GaussianBlur(frame, (25, 25), 0)
+                        frame = np.where(mask_3d == (255, 255, 255), frame, blurred_frame)
 
                     if capture_ss[0]:
                         global captured_ss_path
@@ -141,10 +148,10 @@ class Filters:
                         capture_ss[0] = False
 
                     try:
-                        _, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
+                        _, buffer = cv2.imencode(".jpg", cv2.flip(frame,1))
                         frame = buffer.tobytes()
-                        yield (b'--frame\r\n'
-                            b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                        yield (b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
 
                     except Exception:
                         pass
@@ -157,7 +164,7 @@ class FaceSwapper:
         self.__stream_on = stream_on
         self.__stream_off = stream_off
         self.__swap_face_file = swap_face_file
-        self.__download_folder = "./downloads"
+        self.__download_folder = "./static/downloads"
         self.__predictor_model = "./model/shape_predictor_68_face_landmarks.dat"
         self.__detector = dlib.get_frontal_face_detector()
         self.__predictor = dlib.shape_predictor(self.__predictor_model)
@@ -213,9 +220,9 @@ class FaceSwapper:
             index = num
             return index
 
-    def generate_frame(self, capture_ss):
-        ''' Swaps the faces and generates 
-        the captured frames and yields them as bytes '''
+    def generate_frames(self, capture_ss):
+        """ Swaps the faces and generates 
+        the captured frames and yields them as bytes """
         global frame_to_capture
         if self.__swap_face_file and self.__stream_on[0]:
             cap = cv2.VideoCapture(0)
@@ -308,10 +315,10 @@ class FaceSwapper:
                         frame_to_capture = seamlessclone
 
                         try:
-                            _, buffer = cv2.imencode('.jpg', cv2.flip(seamlessclone, 1))
+                            _, buffer = cv2.imencode(".jpg", cv2.flip(seamlessclone, 1))
                             to_stream = buffer.tobytes()
-                            yield (b'--frame\r\n'
-                                b'Content-Type: image/jpeg\r\n\r\n' + to_stream + b'\r\n')
+                            yield (b"--frame\r\n"
+                                b"Content-Type: image/jpeg\r\n\r\n" + to_stream + b"\r\n")
                         
                         except Exception as e:
                             print(e)
@@ -327,10 +334,168 @@ class FaceSwapper:
                     cv2.imwrite(captured_ss_path, frame_to_capture)
                     capture_ss[0] = False
 
+class FaceControl:
+    def __init__(self, stream_on, stream_off):
+        self.__stream_on = stream_on
+        self.__stream_off = stream_off 
+        self.__classifier_path = "./model/haarcascade_eye_tree_eyeglasses.xml"
+        self.__hog_face_detector = dlib.get_frontal_face_detector()
+        self.__dlib_facelandmark = dlib.shape_predictor("./model/shape_predictor_68_face_landmarks.dat")
+        self.__classifier = cv2.CascadeClassifier(self.__classifier_path)
 
+    def get_single_eye_cord(self, eyes):
+        """ Fetches the coordinates of left eye """
+        if eyes[0].any():
+            return eyes[0][0], eyes[0][1], eyes[0][2], eyes[0][3]
 
+    def calculate_EAR(self, eye):
+        """ Function responsible for calculating
+        Eye Aspect Ratio (EAR) """
+        A = np.linalg.norm(np.array(eye[1]) - np.array(eye[5]))
+        B = np.linalg.norm(np.array(eye[2]) - np.array(eye[4]))
+        C = np.linalg.norm(np.array(eye[0]) - np.array(eye[3]))
+        eye_aspect_ratio = (A+B)/(2.0*C)
+        return eye_aspect_ratio
 
+    def generate_frames(self):
+        cap = cv2.VideoCapture(0)
+        w = cap.get(3)
+        h = cap.get(4)
 
+        pyautogui.FAILSAFE = False
+        display_dim = pyautogui.size()
+        x_cord, y_cord = display_dim[0] // 2, display_dim[1] // 2
+
+        if self.__stream_on[0]:
+            while cap.isOpened():
+                _, frame = cap.read()
+                frame = cv2.flip(frame, 1)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                eyes = self.__classifier.detectMultiScale(gray, 1.2, 5)
+                faces = self.__hog_face_detector(gray)
+                for _ in eyes:
+                    lx, ly, lw, lh = self.get_single_eye_cord(eyes)
+                    cv2.rectangle(frame, (lx, ly), (lx+lw, ly+lh), (0, 255, 0), 2)
+                    print(lx, ly)
+                    
+                    x_cord = np.interp(lx, (0, w), (0, display_dim[0]))
+                    y_cord = np.interp(ly, (0, h), (0, display_dim[1]))
+
+                    pyautogui.moveTo(x_cord, y_cord, 0)
+
+                for face in faces:
+                    face_landmarks = self.__dlib_facelandmark(gray, face)
+                    left_eye = []
+                    right_eye = []
+
+                    for n in range(36,42): # For right eye detection
+                        x1 = face_landmarks.part(n).x
+                        y1 = face_landmarks.part(n).y
+                        left_eye.append((x1,y1))
+
+                        # Draw outline of eye
+                        # next_point = n+1
+                        # if n == 41:
+                        #     next_point = 36
+                        # x2 = face_landmarks.part(next_point).x
+                        # y2 = face_landmarks.part(next_point).y
+                        # # cv2.line(frame, (x1,y1), (x2,y2), (0,0,255), 1)
+
+                    for n in range(42,48): # For left eye detection
+                        x1 = face_landmarks.part(n).x
+                        y1 = face_landmarks.part(n).y
+                        right_eye.append((x1,y1))
+
+                        # Draw outline of eye 
+                        # next_point = n+1
+                        # if n == 47:
+                        #     next_point = 42
+                        
+                        # x2 = face_landmarks.part(next_point).x
+                        # y2 = face_landmarks.part(next_point).y
+                        # cv2.line(frame, (x1,y1), (x2,y2), (0,0,255), 1)
+
+                    left_EAR = self.calculate_EAR(left_eye)
+                    right_EAR = self.calculate_EAR(right_eye)
+
+                    final_EAR = (left_EAR + right_EAR) / 2
+                    # print(final_EAR, left_EAR)
+                    if round(right_EAR, 2) < THRESHOLD_EAR_VALUE:
+                        pyautogui.click(button="right")
+
+                    if round(final_EAR, 2) < THRESHOLD_EAR_VALUE:
+                        pyautogui.click(button="left")
+        
+                try:
+                    _, buffer = cv2.imencode(".jpg", frame)
+                    to_stream = buffer.tobytes()
+                    yield (b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n\r\n" + to_stream + b"\r\n")
+                
+                except Exception as e:
+                    print(e)
+                
+                if self.__stream_off[0]:
+                    cap.release()
+            cv2.destroyAllWindows()
+
+class Editor:
+    def __init__(self, file):
+        self.__file = file
+        self.__uploaded_file_path = f"./static/uploads/{self.__file}"
+
+        filename, ext = self.__file.split(".")
+        self.__download_file_path = f"./static/downloads/{filename}_edited.{ext}"
+
+    def process_img(self, img_attribs):
+        '''Alter the image based on image attributes array '''
+        brightness, contrast, sharpness, width, \
+            height, r_value, g_value, b_value = img_attribs
+        is_edited = False
+
+        img = Image.open(self.__uploaded_file_path)
+
+        if brightness != 1:
+            img = ImageEnhance.Brightness(img).enhance(brightness)
+            is_edited = True
+        
+        if contrast != 1:
+            img = ImageEnhance.Contrast(img).enhance(contrast)
+            is_edited = True
+        
+        if sharpness != 1:
+            img = ImageEnhance.Sharpness(img).enhance(sharpness)
+            is_edited = True
+
+        img = np.array(img).astype(np.float)
+
+        if height and width:
+            print(height, width)
+            img = cv2.resize(img, (int(width), int(height)), interpolation=cv2.INTER_AREA)
+            is_edited = True
+        
+        if b_value != 1:
+            img[..., 0] *= np.clip(img[:, :, 0] * b_value, a_min=0, a_max=255)
+            is_edited = True
+        
+        if g_value != 1:
+            img[..., 1] *= np.clip(img[:, :, 1] * g_value, a_min=0, a_max=255)
+            is_edited = True
+        
+        if r_value != 1:
+            img[..., 2] *= np.clip(img[:, :, 2] * r_value, a_min=0, a_max=255)
+            is_edited = True
+
+        print("Editied", is_edited, self.__download_file_path)
+        if is_edited:
+            (b, g, r) = cv2.split(img)
+            img = cv2.merge([r, g, b])
+            cv2.imwrite(self.__download_file_path, img)
+
+        return self.__download_file_path
+
+        
 
 
 

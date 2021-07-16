@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Editor
+{% endblock %}
+
+{% block header %}
+    Editor
+{% endblock %}
+
+{% block content %}
+    {% for msgs in get_flashed_messages() %}
+    <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+        <strong>{{ msgs }}</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+
+    <div class="container">
+        <div class="row row-custom p-4">
+            <div class="container bg-light mx-auto w-25 h-100 mt-3 border border-primary rounded border-4">
+                <img class="h-100 w-100 mx-auto" src="{{ original }}" alt="">
+                <span class="badge badge-primary mt-3" style="font-size: 14px;">Original</span>
+            </div>
+            <div class="bg-light mx-auto w-50 h-100 mt-3 border border-secondary rounded border-4">
+                <img class="h-100 w-100 mx-auto" src="{{ editing_img }}" alt="">
+                <span class="badge badge-secondary mt-3" style="font-size: 14px;">Editing</span>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-5 px-4">
+        <form action="/editor" method="POST" enctype="multipart/form-data" id="form">
+            <div class="custom-file container w-50 justify-content-center d-flex">
+                <input type="file" class="custom-file-input" id="customFile" name="img" accept=".png, .jpg, .jpeg">
+                <label class="custom-file-label" for="customFile">Choose file</label>
+            </div>
+            <div class="form-group d-flex">
+                <div class="row pt-4 m-3">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">Brightness</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2"
+                        name="brightness">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">Contrast</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2" name="contrast">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">Sharpness</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2" name="sharpness">
+                </div>
+                <div class="row pt-5">
+                    <span class="lead" style="font-weight: bold;">Resize</span>
+                    <label for="exampleInputEmail1">Width</label>
+                    <input type="number" class="form-control w-50" id="exampleInputEmail1" placeholder="Enter Width"
+                        name="width">
+                    <label for="exampleInputEmail1">Height</label>
+                    <input type="number" class="form-control w-50" id="exampleInputEmail1" placeholder="Enter Height"
+                        name="height">
+                </div>
+                <div class="row pt-5 m-3">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">R</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2" name="red">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">G</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2" name="blue">
+                    <label for="customRange2" class="form-label"><span style="font-weight: bold;">B</span></label>
+                    <input type="range" class="form-range w-50" min="0" max="2" step="1" id="customRange2" name="green">
+                </div>
+            </div>
+            <div class="col-md-11 text-center my-5">
+                <button type="submit" class="btn btn-warning text-center" name="preview" value="val">Preview</button>
+                <button type="submit" class="btn btn-success text-center" name="save" value="value">Save</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

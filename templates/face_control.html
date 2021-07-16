@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Face Control
+{% endblock %}
+
+{% block header %}
+    Face Control
+{% endblock %}
+
+{% block content %}
+    {% for msgs in get_flashed_messages() %}
+        <div class="alert alert-danger alert-dismissible fade show m-4" role="alert">
+            <strong>{{ msgs }}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+
+    <div class="bg-light mx-auto w-50 h-50 mt-5 border border-primary rounded border-4">
+        <img class="h-100 w-100 mx-auto" src="{{ url_for("video_feed") }}" alt="">
+    </div>
+    <div class="d-flex container justify-content-center mt-4">
+        <form action="{{ url_for("face_control") }}" method="post" enctype="multipart/form-data">
+            <div class="container mt-2">
+                <input type="submit" class="btn btn-success btn" value="Start" name="start">
+                <input type="submit" class="btn btn-danger btn" value="Stop" name="stop">
+            </div>
+        </form> 
+    </div>
+    <div class="entry-content d-flex justify-content-center mt-3">
+        <div class="entry-content p-4">
+            <p class="lead">&#9642; You may experience frame drops due to heavy computation at backend!</p>
+            <p class="lead">&#9642; Blink left eye for a <strong>LEFT CLICK.</strong></p>
+            <p class="lead">&#9642; Blink both eyes for a <strong>RIGHT CLICK.</strong></p>
+        </div>
+    </div>
+{% endblock %}
